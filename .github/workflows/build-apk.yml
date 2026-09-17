@@ -26,6 +26,14 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # The runner image already ships the SDK. Leaving this empty stops the
+          # action from installing the long-obsolete "tools" package, which no
+          # longer exists in the repository and fails the job.
+          packages: ''
+
+      - name: Accept Android SDK licenses
+        run: yes | sdkmanager --licenses > /dev/null 2>&1 || true
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2

@@ -1,0 +1,70 @@
+name: Build APK
+
+# Builds the release APK and commits it into the repository as
+# "TradingPath 1.0.apk". Runs on pushes to the feature branch and on demand.
+on:
+  push:
+    branches:
+      - claude/clever-feynman-fcrgrf
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.4
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Run tests
+        run: flutter test
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Place APK in the repository
+        run: cp build/app/outputs/flutter-apk/app-release.apk "TradingPath 1.0.apk"
+
+      - name: Upload APK as a workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TradingPath-1.0-apk
+          path: TradingPath 1.0.apk
+
+      - name: Commit the APK back to the branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f "TradingPath 1.0.apk"
+          if git diff --cached --quiet; then
+            echo "APK unchanged; nothing to commit."
+          else
+            git commit -m "Add TradingPath 1.0.apk built from ${GITHUB_SHA}"
+            git push origin HEAD:${GITHUB_REF_NAME}
+          fi
